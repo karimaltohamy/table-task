@@ -1,9 +1,10 @@
-import React, { Dispatch, Fragment, SetStateAction } from "react";
+import React, { Dispatch, Fragment, SetStateAction, useEffect } from "react";
 import MainButton from "../mainButton/MainButton";
 import SelectionInput from "../selectionInput/SelectionInput";
 import "./mainTable.scss";
 import { Questions } from "../../interfaces";
 import ChoiceInput from "../ChoiceInput/ChoiceInput";
+import { generateUUID } from "../../utils/utilsFunctions";
 
 // options
 const typeOptions = [
@@ -39,9 +40,24 @@ const MainTable: React.FC<MainTableProps> = ({
         ...updatedQuestions[index],
         [property]: value,
       };
+
+      const nestedQuestions = updatedQuestions.filter(
+        (item) =>
+          item.parentQuestion &&
+          item.parentQuestion.parentId == updatedQuestions[index].id
+      );
+
+      if (nestedQuestions.length > 0 && property === "question") {
+        nestedQuestions.forEach((nestedQuestion) => {
+          nestedQuestion.parentQuestion.parentQuestion = value;
+        });
+      }
+
       return updatedQuestions;
     });
   };
+
+  console.log(questions);
 
   // function to remove question
   const handleRemoveQuestion = (i: number) => {
@@ -53,7 +69,10 @@ const MainTable: React.FC<MainTableProps> = ({
     setQuestions((prevQuestions: Questions[]) => {
       return prevQuestions.map((question, i) => {
         if (i === index) {
-          const updatedChoices = [...question.choices, { value: "" }];
+          const updatedChoices = [
+            ...question.choices,
+            { id: generateUUID(), value: "", nested: false },
+          ];
           return {
             ...question,
             choices: updatedChoices,
@@ -73,6 +92,19 @@ const MainTable: React.FC<MainTableProps> = ({
     setQuestions((prevQuestions) => {
       const updatedQuestions = [...prevQuestions];
       updatedQuestions[questionIndex].choices[choiceIndex].value = newValue;
+
+      const nestedQuestionIndex = updatedQuestions.findIndex(
+        (item) =>
+          item.parentQuestion &&
+          item.parentQuestion.parentChoiceId ==
+            updatedQuestions[questionIndex].choices[choiceIndex].id
+      );
+
+      if (nestedQuestionIndex != -1) {
+        updatedQuestions[nestedQuestionIndex].parentQuestion.parentChoice =
+          newValue;
+      }
+
       return updatedQuestions;
     });
   };
@@ -84,6 +116,47 @@ const MainTable: React.FC<MainTableProps> = ({
       updatedQuestions[questionIndex].choices.splice(choiceIndex, 1);
       return updatedQuestions;
     });
+  };
+
+  const addNestedQuestion = (
+    currentQuestion: Questions,
+    valueChoice: string,
+    idChoice: string
+  ) => {
+    const updatedChoices = currentQuestion.choices.map((choice) =>
+      choice.id === idChoice ? { ...choice, nested: true } : choice
+    );
+
+    const newQuestion: Questions = {
+      id: generateUUID(),
+      question: "",
+      type: "",
+      choices: [],
+      stage: "",
+      parentQuestion: {
+        parentId: currentQuestion.id,
+        parentQuestion: currentQuestion.question,
+        parentChoice: valueChoice,
+        parentChoiceId: idChoice,
+      },
+      attachFile: false,
+    };
+
+    const updatedCurrentQuestion: Questions = {
+      ...currentQuestion,
+      choices: updatedChoices,
+    };
+
+    const currentIndex = questions.findIndex(
+      (question) => question.id === currentQuestion.id
+    );
+
+    const updatedQuestions = [...questions];
+    updatedQuestions[currentIndex] = updatedCurrentQuestion;
+
+    updatedQuestions.push(newQuestion);
+
+    setQuestions(updatedQuestions);
   };
 
   const handleMove = (currentIndex: number, direction: string) => {
@@ -123,7 +196,14 @@ const MainTable: React.FC<MainTableProps> = ({
           {filteredData.length > 0
             ? filteredData.map((item, index) => {
                 return (
-                  <tr key={index}>
+                  <tr
+                    key={index}
+                    className={`${
+                      Object.keys(item.parentQuestion).length > 0
+                        ? " bg-sky-100"
+                        : ""
+                    }`}
+                  >
                     <td>
                       <input
                         type="text"
@@ -153,7 +233,7 @@ const MainTable: React.FC<MainTableProps> = ({
                       />
                     </td>
                     <td className="choices">
-                      {item.type == "singleChoice" && (
+                      {item.type == "multiChoice" && (
                         <Fragment>
                           <div className="items">
                             {item.choices.length > 0 &&
@@ -183,27 +263,46 @@ const MainTable: React.FC<MainTableProps> = ({
                           />
                         </Fragment>
                       )}
-                      {item.type == "multiChoice" && (
-                        <Fragment>
-                          <div className="items">
-                            <div className="item">
-                              <div className="input">
-                                <input type="text" />
-                              </div>
-                              <button className="add">
-                                <i className="fa-solid fa-plus text-blue-400 text-[20px]"></i>
-                              </button>
-                              <div className="remove">
-                                <i className="fa-solid fa-trash text-red-600 text-[20px]"></i>
-                              </div>
+                      {item.type == "singleChoice" &&
+                        Object.keys(item.parentQuestion).length == 0 && (
+                          <Fragment>
+                            <div className="items">
+                              {item.choices.length > 0 &&
+                                item.choices?.map((select, choiceIndex) => {
+                                  return (
+                                    <ChoiceInput
+                                      key={choiceIndex}
+                                      value={select.value}
+                                      onChange={(newValue) =>
+                                        handleChoiceChange(
+                                          index,
+                                          choiceIndex,
+                                          newValue
+                                        )
+                                      }
+                                      onRemove={() =>
+                                        handleRemoveChoice(index, choiceIndex)
+                                      }
+                                      nested={select.nested}
+                                      showAddNesteedQuestion={true}
+                                      onAddNestedQuestion={() =>
+                                        addNestedQuestion(
+                                          item,
+                                          select.value,
+                                          select.id
+                                        )
+                                      }
+                                    />
+                                  );
+                                })}
                             </div>
-                          </div>
-                          <MainButton
-                            text="Add Choice"
-                            classes="bg-green-500 text-white"
-                          />
-                        </Fragment>
-                      )}
+                            <MainButton
+                              text="Add Choice"
+                              classes="bg-green-500 text-white"
+                              onClick={() => handleAddChoice(index)}
+                            />
+                          </Fragment>
+                        )}
                     </td>
                     <td>
                       <SelectionInput
@@ -216,10 +315,22 @@ const MainTable: React.FC<MainTableProps> = ({
                         }
                       />
                     </td>
-                    <td>
-                      <span className="text-gray-400 text-[14px] ">
-                        No Parent Question
-                      </span>
+                    <td className="parent">
+                      {Object.keys(item.parentQuestion).length > 0 ? (
+                        <div>
+                          <h4 className=" font-medium">
+                            Parent Question:{" "}
+                            {item.parentQuestion?.parentQuestion}
+                          </h4>
+                          <h4 className=" font-medium">
+                            Parent Choice: {item.parentQuestion?.parentChoice}
+                          </h4>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 text-[14px] ">
+                          No Parent Question
+                        </span>
+                      )}
                     </td>
                     <td>
                       <input
@@ -241,24 +352,30 @@ const MainTable: React.FC<MainTableProps> = ({
                         onClick={() => handleRemoveQuestion(index)}
                       />
                     </td>
-                    <td>
-                      <div className="sort">
-                        <div
-                          className={`up ${index === 0 ? "disabled" : ""}`}
-                          onClick={() => handleMove(index, "up")}
-                        >
-                          <i className="fa-solid fa-chevron-up"></i>
+                    {Object.keys(item.parentQuestion).length == 0 ? (
+                      <td>
+                        <div className="sort">
+                          <div
+                            className={`up ${index === 0 ? "disabled" : ""}`}
+                            onClick={() => handleMove(index, "up")}
+                          >
+                            <i className="fa-solid fa-chevron-up"></i>
+                          </div>
+                          <div
+                            className={`down ${
+                              index === filteredData.length - 1
+                                ? "disabled"
+                                : ""
+                            }`}
+                            onClick={() => handleMove(index, "down")}
+                          >
+                            <i className="fa-solid fa-chevron-down"></i>
+                          </div>
                         </div>
-                        <div
-                          className={`down ${
-                            index === filteredData.length - 1 ? "disabled" : ""
-                          }`}
-                          onClick={() => handleMove(index, "down")}
-                        >
-                          <i className="fa-solid fa-chevron-down"></i>
-                        </div>
-                      </div>
-                    </td>
+                      </td>
+                    ) : (
+                      <td></td>
+                    )}
                   </tr>
                 );
               })
