@@ -1,4 +1,4 @@
-import React, { Dispatch, Fragment, SetStateAction, useEffect } from "react";
+import React, { Dispatch, Fragment, SetStateAction } from "react";
 import MainButton from "../mainButton/MainButton";
 import SelectionInput from "../selectionInput/SelectionInput";
 import "./mainTable.scss";
@@ -49,7 +49,9 @@ const MainTable: React.FC<MainTableProps> = ({
 
       if (nestedQuestions.length > 0 && property === "question") {
         nestedQuestions.forEach((nestedQuestion) => {
-          nestedQuestion.parentQuestion.parentQuestion = value;
+          if (nestedQuestion.parentQuestion) {
+            nestedQuestion.parentQuestion.parentQuestion = value;
+          }
         });
       }
 
@@ -100,7 +102,10 @@ const MainTable: React.FC<MainTableProps> = ({
             updatedQuestions[questionIndex].choices[choiceIndex].id
       );
 
-      if (nestedQuestionIndex != -1) {
+      if (
+        nestedQuestionIndex !== -1 &&
+        updatedQuestions[nestedQuestionIndex].parentQuestion
+      ) {
         updatedQuestions[nestedQuestionIndex].parentQuestion.parentChoice =
           newValue;
       }
@@ -199,6 +204,7 @@ const MainTable: React.FC<MainTableProps> = ({
                   <tr
                     key={index}
                     className={`${
+                      item.parentQuestion &&
                       Object.keys(item.parentQuestion).length > 0
                         ? " bg-sky-100"
                         : ""
@@ -264,6 +270,7 @@ const MainTable: React.FC<MainTableProps> = ({
                         </Fragment>
                       )}
                       {item.type == "singleChoice" &&
+                        item.parentQuestion &&
                         Object.keys(item.parentQuestion).length == 0 && (
                           <Fragment>
                             <div className="items">
@@ -316,11 +323,14 @@ const MainTable: React.FC<MainTableProps> = ({
                       />
                     </td>
                     <td className="parent">
-                      {Object.keys(item.parentQuestion).length > 0 ? (
+                      {item.parentQuestion &&
+                      Object.keys(item.parentQuestion).length > 0 ? (
                         <div>
                           <h4 className=" font-medium">
                             Parent Question:{" "}
-                            {item.parentQuestion?.parentQuestion}
+                            {item.parentQuestion
+                              ? item.parentQuestion.parentQuestion
+                              : ""}
                           </h4>
                           <h4 className=" font-medium">
                             Parent Choice: {item.parentQuestion?.parentChoice}
@@ -352,7 +362,8 @@ const MainTable: React.FC<MainTableProps> = ({
                         onClick={() => handleRemoveQuestion(index)}
                       />
                     </td>
-                    {Object.keys(item.parentQuestion).length == 0 ? (
+                    {item.parentQuestion &&
+                    Object.keys(item.parentQuestion).length == 0 ? (
                       <td>
                         <div className="sort">
                           <div

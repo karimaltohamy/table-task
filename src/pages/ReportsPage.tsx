@@ -13,7 +13,6 @@ const ReportsPage = () => {
       type: "",
       choices: [],
       stage: "",
-      parentQuestion: {},
       attachFile: false,
     },
   ]);
