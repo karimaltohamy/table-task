@@ -17,8 +17,8 @@ const stageOptions = [
 ];
 
 interface MainTableProps {
-  questions: [Questions];
-  setQuestions: Dispatch<SetStateAction<[Questions]>>;
+  questions: Questions[];
+  setQuestions: Dispatch<SetStateAction<Questions[]>>;
   filter: string;
 }
 
@@ -33,8 +33,8 @@ const MainTable: React.FC<MainTableProps> = ({
     value: any,
     property: string
   ) => {
-    setQuestions((prevQuestions: [Questions]) => {
-      const updatedQuestions: [Questions] = [...prevQuestions];
+    setQuestions((prevQuestions: Questions[]) => {
+      const updatedQuestions: Questions[] = [...prevQuestions];
       updatedQuestions[index] = {
         ...updatedQuestions[index],
         [property]: value,
@@ -86,7 +86,7 @@ const MainTable: React.FC<MainTableProps> = ({
   };
 
   const handleMove = (currentIndex: number, direction: string) => {
-    const newList: [Questions] = [...questions];
+    const newList: Questions[] = [...questions];
     const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
     if (newIndex >= 0 && newIndex < newList.length) {
       const currentItem = newList[currentIndex];

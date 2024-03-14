@@ -5,7 +5,7 @@ import MainTable from "../components/mainTable/MainTable";
 import { Questions } from "../interfaces";
 
 const ReportsPage = () => {
-  const [questions, setQuestions] = useState<[Questions]>([
+  const [questions, setQuestions] = useState<Questions[]>([
     {
       question: "",
       type: "",

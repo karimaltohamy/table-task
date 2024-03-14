@@ -1,5 +1,4 @@
-import { Dispatch, SetStateAction } from "react";
-import Select from "react-select";
+import Select, { SingleValue } from "react-select";
 import "./selectionInput.scss";
 
 interface Option {
@@ -9,8 +8,8 @@ interface Option {
 
 interface SelectionInputProps {
   options: Option[];
-  onChange?: Dispatch<SetStateAction<string>>;
-  value: Option;
+  onChange: (value: string) => string;
+  value?: Option;
 }
 
 const SelectionInput: React.FC<SelectionInputProps> = ({
@@ -18,11 +17,16 @@ const SelectionInput: React.FC<SelectionInputProps> = ({
   onChange,
   value,
 }) => {
+  const handleChange = (newValue: SingleValue<Option>) => {
+    if (newValue) {
+      onChange && onChange(newValue.value as string);
+    }
+  };
   return (
     <Select
       options={options}
       value={value}
-      onChange={(newValue) => onChange(newValue?.value)}
+      onChange={handleChange}
       className="selection_input"
     />
   );
