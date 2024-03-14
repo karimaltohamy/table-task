@@ -1,6 +1,7 @@
 import React, { Dispatch, SetStateAction } from "react";
 import MainButton from "../mainButton/MainButton";
 import { Questions } from "../../interfaces";
+import { generateUUID } from "../../utils/utilsFunctions";
 
 interface ActionSectionProps {
   setQuestions: Dispatch<SetStateAction<Questions[]>>;
@@ -13,6 +14,7 @@ const ActionSection: React.FC<ActionSectionProps> = ({ setQuestions }) => {
         ? [
             ...prev,
             {
+              id: generateUUID(),
               question: "",
               type: "",
               choices: [],
@@ -23,6 +25,7 @@ const ActionSection: React.FC<ActionSectionProps> = ({ setQuestions }) => {
           ]
         : [
             {
+              id: generateUUID(),
               question: "",
               type: "",
               choices: [],

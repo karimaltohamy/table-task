@@ -3,10 +3,12 @@ import ActionSection from "../components/actionSection/ActionSection";
 import HeadTable from "../components/headTable/HeadTable";
 import MainTable from "../components/mainTable/MainTable";
 import { Questions } from "../interfaces";
+import { generateUUID } from "../utils/utilsFunctions";
 
 const ReportsPage = () => {
   const [questions, setQuestions] = useState<Questions[]>([
     {
+      id: generateUUID(),
       question: "",
       type: "",
       choices: [],
