@@ -118,8 +118,11 @@ const MainTable: React.FC<MainTableProps> = ({
             updatedQuestions[questionIndex].choices[choiceIndex].id
       );
 
-      if (nestedQuestionIndex != -1) {
-        updatedQuestions[nestedQuestionIndex].parentQuestion.parentChoice =
+      if (
+        nestedQuestionIndex !== -1 &&
+        updatedQuestions[nestedQuestionIndex]!.parentQuestion !== undefined
+      ) {
+        updatedQuestions[nestedQuestionIndex]!.parentQuestion!.parentChoice =
           newValue;
       }
 
