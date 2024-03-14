@@ -8,7 +8,7 @@ interface Option {
 
 interface SelectionInputProps {
   options: Option[];
-  onChange: (value: string) => string;
+  onChange: (value: string) => void;
   value?: Option;
 }
 
