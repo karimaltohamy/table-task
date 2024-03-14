@@ -3,12 +3,12 @@ import MainButton from "../mainButton/MainButton";
 import { Questions } from "../../interfaces";
 
 interface ActionSectionProps {
-  setQuestions: Dispatch<SetStateAction<Questions[]>>;
+  setQuestions: Dispatch<SetStateAction<[Questions]>>;
 }
 
 const ActionSection: React.FC<ActionSectionProps> = ({ setQuestions }) => {
   const addQuestion = () => {
-    setQuestions((prev: Questions[]) => {
+    setQuestions((prev: [Questions]) => {
       return prev
         ? [
             ...prev,
