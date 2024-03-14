@@ -49,7 +49,8 @@ const MainTable: React.FC<MainTableProps> = ({
 
       if (nestedQuestions.length > 0 && property === "question") {
         nestedQuestions.forEach((nestedQuestion) => {
-          nestedQuestion.parentQuestion !== undefined && nestedQuestion.parentQuestion.parentQuestion = value;
+          nestedQuestion.parentQuestion !== undefined &&
+            (nestedQuestion.parentQuestion.parentQuestion = value);
         });
       }
 
