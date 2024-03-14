@@ -50,12 +50,13 @@ const MainTable: React.FC<MainTableProps> = ({
 
   // function to add choice to quesion
   const handleAddChoice = (index: number) => {
-    setQuestions((prevQuestions) => {
+    setQuestions((prevQuestions: Questions[]) => {
       return prevQuestions.map((question, i) => {
         if (i === index) {
+          const updatedChoices = [...question.choices, { value: "" }];
           return {
             ...question,
-            choices: [...question.choices, { value: "" }],
+            choices: updatedChoices,
           };
         }
         return question;
