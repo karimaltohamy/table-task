@@ -49,9 +49,7 @@ const MainTable: React.FC<MainTableProps> = ({
 
       if (nestedQuestions.length > 0 && property === "question") {
         nestedQuestions.forEach((nestedQuestion) => {
-          if (nestedQuestion.parentQuestion) {
-            nestedQuestion.parentQuestion.parentQuestion = value;
-          }
+          nestedQuestion.parentQuestion !== undefined && nestedQuestion.parentQuestion.parentQuestion = value;
         });
       }
 
@@ -59,11 +57,28 @@ const MainTable: React.FC<MainTableProps> = ({
     });
   };
 
-  console.log(questions);
-
   // function to remove question
-  const handleRemoveQuestion = (i: number) => {
-    setQuestions(questions.filter((_, index: number) => index !== i));
+  const handleRemoveQuestion = (i: number, question: Questions) => {
+    let updatedQuestions = [...questions];
+    const parentChoiceId =
+      question.parentQuestion && question.parentQuestion.parentChoiceId;
+
+    updatedQuestions = updatedQuestions.map((item) => {
+      if (item.choices.some((ele) => ele.id === parentChoiceId)) {
+        return {
+          ...item,
+          choices: item.choices.map((ele) =>
+            ele.id === parentChoiceId ? { ...ele, nested: false } : ele
+          ),
+        };
+      } else {
+        return item;
+      }
+    });
+
+    updatedQuestions.splice(i, 1);
+
+    setQuestions(updatedQuestions);
   };
 
   // function to add choice to quesion
@@ -102,10 +117,7 @@ const MainTable: React.FC<MainTableProps> = ({
             updatedQuestions[questionIndex].choices[choiceIndex].id
       );
 
-      if (
-        nestedQuestionIndex !== -1 &&
-        updatedQuestions[nestedQuestionIndex].parentQuestion
-      ) {
+      if (nestedQuestionIndex != -1) {
         updatedQuestions[nestedQuestionIndex].parentQuestion.parentChoice =
           newValue;
       }
@@ -117,9 +129,34 @@ const MainTable: React.FC<MainTableProps> = ({
   // Function to handle remove question choice
   const handleRemoveChoice = (questionIndex: number, choiceIndex: number) => {
     setQuestions((prevQuestions) => {
-      const updatedQuestions = [...prevQuestions];
-      updatedQuestions[questionIndex].choices.splice(choiceIndex, 1);
-      return updatedQuestions;
+      let updatedQuestions = [...prevQuestions];
+
+      const questionsWithoutNestedQuestion = updatedQuestions.filter(
+        (question) => {
+          return !(
+            question.parentQuestion &&
+            question.parentQuestion.parentChoiceId ===
+              updatedQuestions[questionIndex].choices[choiceIndex].id
+          );
+        }
+      );
+
+      console.log(questionsWithoutNestedQuestion);
+
+      return questionsWithoutNestedQuestion.map((question, index) => {
+        if (index !== questionIndex) {
+          return question;
+        }
+
+        const updatedChoices = question.choices.filter(
+          (_, idx) => idx !== choiceIndex
+        );
+
+        return {
+          ...question,
+          choices: updatedChoices,
+        };
+      });
     });
   };
 
@@ -204,8 +241,9 @@ const MainTable: React.FC<MainTableProps> = ({
                   <tr
                     key={index}
                     className={`${
-                      item.parentQuestion &&
-                      Object.keys(item.parentQuestion).length > 0
+                      Object.keys(
+                        item.parentQuestion !== undefined && item.parentQuestion
+                      ).length > 0
                         ? " bg-sky-100"
                         : ""
                     }`}
@@ -232,7 +270,10 @@ const MainTable: React.FC<MainTableProps> = ({
                         )}
                         onChange={(value) => {
                           handleQuestionChange(index, value, "type");
-                          if (value == "singleChoice") {
+                          if (
+                            value == "singleChoice" ||
+                            value == "multiChoice"
+                          ) {
                             handleAddChoice(index);
                           }
                         }}
@@ -270,8 +311,10 @@ const MainTable: React.FC<MainTableProps> = ({
                         </Fragment>
                       )}
                       {item.type == "singleChoice" &&
-                        item.parentQuestion &&
-                        Object.keys(item.parentQuestion).length == 0 && (
+                        Object.keys(
+                          item.parentQuestion !== undefined &&
+                            item.parentQuestion
+                        ).length == 0 && (
                           <Fragment>
                             <div className="items">
                               {item.choices.length > 0 &&
@@ -323,14 +366,14 @@ const MainTable: React.FC<MainTableProps> = ({
                       />
                     </td>
                     <td className="parent">
-                      {item.parentQuestion &&
-                      Object.keys(item.parentQuestion).length > 0 ? (
+                      {Object.keys(
+                        item.parentQuestion !== undefined && item.parentQuestion
+                      ).length > 0 ? (
                         <div>
                           <h4 className=" font-medium">
                             Parent Question:{" "}
-                            {item.parentQuestion
-                              ? item.parentQuestion.parentQuestion
-                              : ""}
+                            {item.parentQuestion !== undefined &&
+                              item.parentQuestion.parentQuestion}
                           </h4>
                           <h4 className=" font-medium">
                             Parent Choice: {item.parentQuestion?.parentChoice}
@@ -359,11 +402,12 @@ const MainTable: React.FC<MainTableProps> = ({
                       <MainButton
                         text="Delete Question"
                         classes="bg-red-500 text-white"
-                        onClick={() => handleRemoveQuestion(index)}
+                        onClick={() => handleRemoveQuestion(index, item)}
                       />
                     </td>
-                    {item.parentQuestion &&
-                    Object.keys(item.parentQuestion).length == 0 ? (
+                    {Object.keys(
+                      item.parentQuestion !== undefined && item.parentQuestion
+                    ).length == 0 ? (
                       <td>
                         <div className="sort">
                           <div
