@@ -19,7 +19,7 @@ const ActionSection: React.FC<ActionSectionProps> = ({ setQuestions }) => {
               type: "",
               choices: [],
               stage: "",
-              parentQuestion: {},
+              parentQuestion: undefined,
               attachFile: false,
             },
           ]
@@ -30,7 +30,7 @@ const ActionSection: React.FC<ActionSectionProps> = ({ setQuestions }) => {
               type: "",
               choices: [],
               stage: "",
-              parentQuestion: {},
+              parentQuestion: undefined,
               attachFile: false,
             },
           ];
