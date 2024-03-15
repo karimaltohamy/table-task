@@ -145,8 +145,6 @@ const MainTable: React.FC<MainTableProps> = ({
         }
       );
 
-      console.log(questionsWithoutNestedQuestion);
-
       return questionsWithoutNestedQuestion.map((question, index) => {
         if (index !== questionIndex) {
           return question;
@@ -173,7 +171,7 @@ const MainTable: React.FC<MainTableProps> = ({
       choice.id === idChoice ? { ...choice, nested: true } : choice
     );
 
-    const newQuestion: Questions = {
+    const newNestedQuestion: Questions = {
       id: generateUUID(),
       question: "",
       type: "",
@@ -193,25 +191,54 @@ const MainTable: React.FC<MainTableProps> = ({
       choices: updatedChoices,
     };
 
-    const currentIndex = questions.findIndex(
+    const parentIndex = questions.findIndex(
       (question) => question.id === currentQuestion.id
     );
 
-    const updatedQuestions = [...questions];
-    updatedQuestions[currentIndex] = updatedCurrentQuestion;
+    const nestedQuestionsStartIndex = parentIndex + 1;
+    const existingNestedQuestions = questions.slice(nestedQuestionsStartIndex);
 
-    updatedQuestions.push(newQuestion);
+    // find the index of the first nested question
+    const firstNestedQuestionIndex = existingNestedQuestions.findIndex(
+      (question) => question.parentQuestion?.parentId === currentQuestion.id
+    );
 
-    setQuestions(updatedQuestions);
+    let insertIndex;
+    if (firstNestedQuestionIndex === -1) {
+      // if no existing nested questions, insert after the parent question
+      insertIndex = nestedQuestionsStartIndex;
+    } else {
+      // insert after the first existing nested question
+      insertIndex = nestedQuestionsStartIndex + firstNestedQuestionIndex + 1;
+    }
+
+    // Insert the new nested question at the appropriate index
+    const updatedQuestions = [
+      ...questions.slice(0, insertIndex),
+      newNestedQuestion,
+      ...questions.slice(insertIndex),
+    ];
+
+    const updatedQuestionsWithNestedQuestion = [
+      ...updatedQuestions.slice(0, parentIndex),
+      updatedCurrentQuestion,
+      ...updatedQuestions.slice(parentIndex + 1),
+    ];
+
+    setQuestions(updatedQuestionsWithNestedQuestion);
   };
 
   const handleMove = (currentIndex: number, direction: string) => {
     const newList: Questions[] = [...questions];
     const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+
     if (newIndex >= 0 && newIndex < newList.length) {
       const currentItem = newList[currentIndex];
-      newList[currentIndex] = newList[newIndex];
-      newList[newIndex] = currentItem;
+      const newItem = newList[newIndex];
+
+      newList.splice(currentIndex, 1, newItem);
+      newList.splice(newIndex, 1, currentItem);
+
       setQuestions(newList);
     }
   };
@@ -275,8 +302,12 @@ const MainTable: React.FC<MainTableProps> = ({
                         onChange={(value) => {
                           handleQuestionChange(index, value, "type");
                           if (
-                            value == "singleChoice" ||
-                            value == "multiChoice"
+                            (value == "singleChoice" ||
+                              value == "multiChoice") &&
+                            Object.keys(
+                              item.parentQuestion !== undefined &&
+                                item.parentQuestion
+                            ).length == 0
                           ) {
                             handleAddChoice(index);
                           }
