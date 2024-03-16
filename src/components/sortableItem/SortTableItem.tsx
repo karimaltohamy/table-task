@@ -13,7 +13,6 @@ interface SortTableItemProps {
 
 const SortTableItem: React.FC<SortTableItemProps> = ({
   id,
-  index,
   children,
   classes,
 }) => {
