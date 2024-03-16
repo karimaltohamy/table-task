@@ -9,7 +9,6 @@ import {
   DndContext,
   KeyboardSensor,
   MouseSensor,
-  PointerSensor,
   TouchSensor,
   closestCorners,
   useSensor,
