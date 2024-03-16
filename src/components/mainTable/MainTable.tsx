@@ -5,6 +5,23 @@ import "./mainTable.scss";
 import { Questions } from "../../interfaces";
 import ChoiceInput from "../ChoiceInput/ChoiceInput";
 import { generateUUID } from "../../utils/utilsFunctions";
+import {
+  DndContext,
+  KeyboardSensor,
+  MouseSensor,
+  PointerSensor,
+  TouchSensor,
+  closestCorners,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import SortTableItem from "../sortableItem/SortTableItem";
 
 // options
 const typeOptions = [
@@ -243,6 +260,39 @@ const MainTable: React.FC<MainTableProps> = ({
     }
   };
 
+  const sensors = useSensors(
+    useSensor(MouseSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 200,
+        tolerance: 6,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const getQuestionPos = (id: any) =>
+    questions.findIndex((question) => question.id == id);
+
+  const handleDragEnd = (event: { active: any; over: any }) => {
+    const { active, over } = event;
+
+    // Check if either active or over is null
+    if (!active || !over || active.id === over.id) return;
+
+    setQuestions((prevQuestions) => {
+      const originPos = getQuestionPos(active.id);
+      const newPos = getQuestionPos(over.id);
+      return arrayMove(prevQuestions, originPos, newPos);
+    });
+  };
+
   // handle filter questions
   const filteredData =
     filter == "allStages" || filter == ""
@@ -251,227 +301,250 @@ const MainTable: React.FC<MainTableProps> = ({
 
   return (
     <div className="main_table mb-10">
-      <table>
-        <thead>
-          <tr>
-            <th>Question</th>
-            <th>Type</th>
-            <th>Choices</th>
-            <th>Stage</th>
-            <th>Parent Question</th>
-            <th>Attach File</th>
-            <th>Delete</th>
-            <th>Sort</th>
-          </tr>
-        </thead>
-        <div className="mt-5"></div>
-        <tbody>
-          {filteredData.length > 0
-            ? filteredData.map((item, index) => {
-                return (
-                  <tr
-                    key={index}
-                    className={`${
-                      Object.keys(
-                        item.parentQuestion !== undefined && item.parentQuestion
-                      ).length > 0
-                        ? " bg-sky-100"
-                        : ""
-                    }`}
-                  >
-                    <td>
-                      <input
-                        type="text"
-                        placeholder="write Your Question"
-                        value={item?.question}
-                        onChange={(e) =>
-                          handleQuestionChange(
-                            index,
-                            e.target.value,
-                            "question"
-                          )
-                        }
-                      />
-                    </td>
-                    <td>
-                      <SelectionInput
-                        options={typeOptions}
-                        value={typeOptions.find(
-                          (ele) => ele.value == item.stage
-                        )}
-                        onChange={(value) => {
-                          handleQuestionChange(index, value, "type");
-                          if (
-                            (value == "singleChoice" ||
-                              value == "multiChoice") &&
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCorners}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext
+          items={questions}
+          strategy={verticalListSortingStrategy}
+        >
+          <table>
+            <thead>
+              <tr>
+                <th>Question</th>
+                <th>Type</th>
+                <th>Choices</th>
+                <th>Stage</th>
+                <th>Parent Question</th>
+                <th>Attach File</th>
+                <th>Delete</th>
+                <th>Sort</th>
+              </tr>
+            </thead>
+            <div className="mt-5"></div>
+            <tbody>
+              {filteredData.length > 0
+                ? filteredData.map((item, index) => {
+                    return (
+                      <SortTableItem
+                        key={item.id}
+                        id={item.id}
+                        index={index}
+                        question={item}
+                        classes={`${
+                          Object.keys(
+                            item.parentQuestion !== undefined &&
+                              item.parentQuestion
+                          ).length > 0
+                            ? " bg-sky-100"
+                            : ""
+                        }`}
+                      >
+                        <td>
+                          <input
+                            type="text"
+                            placeholder="write Your Question"
+                            value={item?.question}
+                            onChange={(e) =>
+                              handleQuestionChange(
+                                index,
+                                e.target.value,
+                                "question"
+                              )
+                            }
+                          />
+                        </td>
+                        <td>
+                          <SelectionInput
+                            options={typeOptions}
+                            value={typeOptions.find(
+                              (ele) => ele.value == item.stage
+                            )}
+                            onChange={(value) => {
+                              handleQuestionChange(index, value, "type");
+                              if (
+                                (value == "singleChoice" ||
+                                  value == "multiChoice") &&
+                                Object.keys(
+                                  item.parentQuestion !== undefined &&
+                                    item.parentQuestion
+                                ).length == 0
+                              ) {
+                                handleAddChoice(index);
+                              }
+                            }}
+                          />
+                        </td>
+                        <td className="choices">
+                          {item.type == "multiChoice" && (
+                            <Fragment>
+                              <div className="items">
+                                {item.choices.length > 0 &&
+                                  item.choices?.map((select, choiceIndex) => {
+                                    return (
+                                      <ChoiceInput
+                                        key={choiceIndex}
+                                        value={select.value}
+                                        onChange={(newValue) =>
+                                          handleChoiceChange(
+                                            index,
+                                            choiceIndex,
+                                            newValue
+                                          )
+                                        }
+                                        onRemove={() =>
+                                          handleRemoveChoice(index, choiceIndex)
+                                        }
+                                      />
+                                    );
+                                  })}
+                              </div>
+                              <MainButton
+                                text="Add Choice"
+                                classes="bg-green-500 text-white"
+                                onClick={() => handleAddChoice(index)}
+                              />
+                            </Fragment>
+                          )}
+                          {item.type == "singleChoice" &&
                             Object.keys(
                               item.parentQuestion !== undefined &&
                                 item.parentQuestion
-                            ).length == 0
-                          ) {
-                            handleAddChoice(index);
-                          }
-                        }}
-                      />
-                    </td>
-                    <td className="choices">
-                      {item.type == "multiChoice" && (
-                        <Fragment>
-                          <div className="items">
-                            {item.choices.length > 0 &&
-                              item.choices?.map((select, choiceIndex) => {
-                                return (
-                                  <ChoiceInput
-                                    key={choiceIndex}
-                                    value={select.value}
-                                    onChange={(newValue) =>
-                                      handleChoiceChange(
-                                        index,
-                                        choiceIndex,
-                                        newValue
-                                      )
-                                    }
-                                    onRemove={() =>
-                                      handleRemoveChoice(index, choiceIndex)
-                                    }
-                                  />
-                                );
-                              })}
-                          </div>
-                          <MainButton
-                            text="Add Choice"
-                            classes="bg-green-500 text-white"
-                            onClick={() => handleAddChoice(index)}
+                            ).length == 0 && (
+                              <Fragment>
+                                <div className="items">
+                                  {item.choices.length > 0 &&
+                                    item.choices?.map((select, choiceIndex) => {
+                                      return (
+                                        <ChoiceInput
+                                          key={choiceIndex}
+                                          value={select.value}
+                                          onChange={(newValue) =>
+                                            handleChoiceChange(
+                                              index,
+                                              choiceIndex,
+                                              newValue
+                                            )
+                                          }
+                                          onRemove={() =>
+                                            handleRemoveChoice(
+                                              index,
+                                              choiceIndex
+                                            )
+                                          }
+                                          nested={select.nested}
+                                          showAddNesteedQuestion={true}
+                                          onAddNestedQuestion={() =>
+                                            addNestedQuestion(
+                                              item,
+                                              select.value,
+                                              select.id
+                                            )
+                                          }
+                                        />
+                                      );
+                                    })}
+                                </div>
+                                <MainButton
+                                  text="Add Choice"
+                                  classes="bg-green-500 text-white"
+                                  onClick={() => handleAddChoice(index)}
+                                />
+                              </Fragment>
+                            )}
+                        </td>
+                        <td>
+                          <SelectionInput
+                            options={stageOptions}
+                            value={stageOptions.find(
+                              (ele) => ele.value == item.stage
+                            )}
+                            onChange={(value) =>
+                              handleQuestionChange(index, value, "stage")
+                            }
                           />
-                        </Fragment>
-                      )}
-                      {item.type == "singleChoice" &&
-                        Object.keys(
+                        </td>
+                        <td className="parent">
+                          {Object.keys(
+                            item.parentQuestion !== undefined &&
+                              item.parentQuestion
+                          ).length > 0 ? (
+                            <div>
+                              <h4 className=" font-medium">
+                                Parent Question:{" "}
+                                {item.parentQuestion !== undefined &&
+                                  item.parentQuestion.parentQuestion}
+                              </h4>
+                              <h4 className=" font-medium">
+                                Parent Choice:{" "}
+                                {item.parentQuestion?.parentChoice}
+                              </h4>
+                            </div>
+                          ) : (
+                            <span className="text-gray-400 text-[14px] ">
+                              No Parent Question
+                            </span>
+                          )}
+                        </td>
+                        <td>
+                          <input
+                            type="checkbox"
+                            checked={item?.attachFile}
+                            onChange={(e) =>
+                              handleQuestionChange(
+                                index,
+                                e.target.checked,
+                                "attachFile"
+                              )
+                            }
+                          />
+                        </td>
+                        <td>
+                          <MainButton
+                            text="Delete Question"
+                            classes="bg-red-500 text-white"
+                            onClick={() => handleRemoveQuestion(index, item)}
+                          />
+                        </td>
+                        {Object.keys(
                           item.parentQuestion !== undefined &&
                             item.parentQuestion
-                        ).length == 0 && (
-                          <Fragment>
-                            <div className="items">
-                              {item.choices.length > 0 &&
-                                item.choices?.map((select, choiceIndex) => {
-                                  return (
-                                    <ChoiceInput
-                                      key={choiceIndex}
-                                      value={select.value}
-                                      onChange={(newValue) =>
-                                        handleChoiceChange(
-                                          index,
-                                          choiceIndex,
-                                          newValue
-                                        )
-                                      }
-                                      onRemove={() =>
-                                        handleRemoveChoice(index, choiceIndex)
-                                      }
-                                      nested={select.nested}
-                                      showAddNesteedQuestion={true}
-                                      onAddNestedQuestion={() =>
-                                        addNestedQuestion(
-                                          item,
-                                          select.value,
-                                          select.id
-                                        )
-                                      }
-                                    />
-                                  );
-                                })}
+                        ).length == 0 ? (
+                          <td>
+                            <div className="sort">
+                              <div
+                                className={`up ${
+                                  index === 0 ? "disabled" : ""
+                                }`}
+                                onClick={() => handleMove(index, "up")}
+                              >
+                                <i className="fa-solid fa-chevron-up"></i>
+                              </div>
+                              <div
+                                className={`down ${
+                                  index === filteredData.length - 1
+                                    ? "disabled"
+                                    : ""
+                                }`}
+                                onClick={() => handleMove(index, "down")}
+                              >
+                                <i className="fa-solid fa-chevron-down"></i>
+                              </div>
                             </div>
-                            <MainButton
-                              text="Add Choice"
-                              classes="bg-green-500 text-white"
-                              onClick={() => handleAddChoice(index)}
-                            />
-                          </Fragment>
+                          </td>
+                        ) : (
+                          <td></td>
                         )}
-                    </td>
-                    <td>
-                      <SelectionInput
-                        options={stageOptions}
-                        value={stageOptions.find(
-                          (ele) => ele.value == item.stage
-                        )}
-                        onChange={(value) =>
-                          handleQuestionChange(index, value, "stage")
-                        }
-                      />
-                    </td>
-                    <td className="parent">
-                      {Object.keys(
-                        item.parentQuestion !== undefined && item.parentQuestion
-                      ).length > 0 ? (
-                        <div>
-                          <h4 className=" font-medium">
-                            Parent Question:{" "}
-                            {item.parentQuestion !== undefined &&
-                              item.parentQuestion.parentQuestion}
-                          </h4>
-                          <h4 className=" font-medium">
-                            Parent Choice: {item.parentQuestion?.parentChoice}
-                          </h4>
-                        </div>
-                      ) : (
-                        <span className="text-gray-400 text-[14px] ">
-                          No Parent Question
-                        </span>
-                      )}
-                    </td>
-                    <td>
-                      <input
-                        type="checkbox"
-                        checked={item?.attachFile}
-                        onChange={(e) =>
-                          handleQuestionChange(
-                            index,
-                            e.target.checked,
-                            "attachFile"
-                          )
-                        }
-                      />
-                    </td>
-                    <td>
-                      <MainButton
-                        text="Delete Question"
-                        classes="bg-red-500 text-white"
-                        onClick={() => handleRemoveQuestion(index, item)}
-                      />
-                    </td>
-                    {Object.keys(
-                      item.parentQuestion !== undefined && item.parentQuestion
-                    ).length == 0 ? (
-                      <td>
-                        <div className="sort">
-                          <div
-                            className={`up ${index === 0 ? "disabled" : ""}`}
-                            onClick={() => handleMove(index, "up")}
-                          >
-                            <i className="fa-solid fa-chevron-up"></i>
-                          </div>
-                          <div
-                            className={`down ${
-                              index === filteredData.length - 1
-                                ? "disabled"
-                                : ""
-                            }`}
-                            onClick={() => handleMove(index, "down")}
-                          >
-                            <i className="fa-solid fa-chevron-down"></i>
-                          </div>
-                        </div>
-                      </td>
-                    ) : (
-                      <td></td>
-                    )}
-                  </tr>
-                );
-              })
-            : ""}
-        </tbody>
-      </table>
+                      </SortTableItem>
+                    );
+                  })
+                : ""}
+            </tbody>
+          </table>
+        </SortableContext>
+      </DndContext>
     </div>
   );
 };

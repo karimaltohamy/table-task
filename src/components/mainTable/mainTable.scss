@@ -10,6 +10,7 @@
         font-size: 15px;
         font-weight: 500;
         text-align: start;
+        max-width: 100px;
 
         &:not(:last-child) {
           border-right: 1px solid rgb(226 226 226);
@@ -21,6 +22,7 @@
       border: 1px solid rgb(226 226 226);
       tr {
         td {
+          max-width: 100%;
           padding: 10px 8px;
           font-size: 15px;
           font-weight: 500;
